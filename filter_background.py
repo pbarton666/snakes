@@ -2,43 +2,7 @@ import os
 
 import numpy as np
 from PIL import Image
-from utilities import hsv_to_rgb, rgb_to_hsv, mask
-
-
-
-def test(original_image_dir=None,original_image_file=None ):
-    'ss'
-    with Image.open(os.path.join(original_image_dir,original_image_file)) as im:
-        #im.show()
-        img_as_data=np.array(im)
-        r, g, b, a = img_as_data.T
-        background_areas=mask(r, 238,
-                              g, 57,
-                              b, 57,
-                              slop=10
-                              )
-        
-        #substitute a single color for what may be a variagated background
-        img_as_data[background_areas.T] = (255,0,0,255)   
-        clean = Image.fromarray(img_as_data, "RGBA")
-        #clean.show()
-        colors=20
-        reduced=clean.convert('P', palette=Image.ADAPTIVE, colors=colors)
-        reduced.show()
-        quantized=clean.quantize(colors=colors)
-        quantized.show()
-
-        reduc2 = reduced.convert('RGB') #turns it to rgb
-        #reduc2_hist0 = reduc2.histogram()
-        reduc_fn = 'scratch.BMP'
-        reduc2.save(reduc_fn)
-        xxx = Image.open(reduc_fn)
-        xxx=xxx.convert('RGB')
-        #xconverted_image = raw_image.convert('RGBA')
-        xxx_histo=xxx.histogram()
-        h, w = xxx.size
-        xreduced_colors=xxx.getcolors(w*h)
-        xxx.close()    
+from utilities import hsv_to_rgb, rgb_to_hsv, mask  
 
 def filter_background(original_image_dir=None,
                       hsv_image_dir=None,
@@ -47,7 +11,8 @@ def filter_background(original_image_dir=None,
                       target_background_s=None,
                       target_background_v=None,
                       target_background_tolerance=None,
-                      new_background_hsv=None
+                      new_background_hsv=None,
+                      return_rgb=None
                       ):
     """Routine for filtering the background of an image captured in the wild.
        Converts an image using the RGB color model to HSV.  Then, using the HSV
@@ -88,11 +53,11 @@ def filter_background(original_image_dir=None,
         
         im2 = Image.fromarray(data_rgb_255, "RGB")
         im2.show()
-        
-        return data_hsv
+        if not return_rgb:
+            return data_hsv
+        else:
+            return im2
 
-        
-        #can we save the hsv data as an image (even if we can't view it easily)?
 if __name__=='__main__':
     original_image_dir="/home/pat/workspace/snakes"
     hsv_image_dir="/home/pat/workspace/snakes"
@@ -115,7 +80,7 @@ if __name__=='__main__':
                           new_background_hsv=new_background_hsv
                           )    
     im2 = Image.fromarray(fb, "RGB")
-    im2.show()
+    #im2.show()
     a=1
     ###Next step:  create 'flat' image of only the non-background pixels
     
