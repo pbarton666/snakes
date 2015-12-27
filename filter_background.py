@@ -1,8 +1,7 @@
 import os
-
 import numpy as np
 from PIL import Image
-from utilities import hsv_to_rgb, rgb_to_hsv, mask  
+ 
 
 def filter_background(original_image_dir=None,
                       hsv_image_dir=None,
@@ -59,6 +58,8 @@ def filter_background(original_image_dir=None,
             return im2
 
 if __name__=='__main__':
+    import utilities
+    from utilities import hsv_to_rgb, rgb_to_hsv, mask     
     original_image_dir="/home/pat/workspace/snakes"
     hsv_image_dir="/home/pat/workspace/snakes"
     original_image_file="test_image_red.png"     
@@ -80,7 +81,5 @@ if __name__=='__main__':
                           new_background_hsv=new_background_hsv
                           )    
     im2 = Image.fromarray(fb, "RGB")
-    #im2.show()
-    a=1
-    ###Next step:  create 'flat' image of only the non-background pixels
+
     
