@@ -72,14 +72,15 @@ def color_to_alpha(image, color=None):
 
 
 
-
-idir = '/home/pat/data/snakes/'
-iname= 'test.png'
-
-image = Image.open(idir+iname)
-
-image = color_to_alpha(image, (0, 0, 0, 255))
-background = Image.new('RGB', image.size, (255, 255, 255))
-background.paste(image.convert('RGB'), mask=image)
+if __name__=='__main__':
+    
+    idir = '/home/pat/data/snakes/'
+    iname= 'test.png'
+    
+    image = Image.open(idir+iname)
+    
+    image = color_to_alpha(image, (0, 0, 0, 255))
+    background = Image.new('RGB', image.size, (255, 255, 255))
+    background.paste(image.convert('RGB'), mask=image)
 
 x=1

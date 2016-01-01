@@ -1,10 +1,69 @@
 import numpy as np
 import math
 import os
+from matplotlib.colors import hsv_to_rgb, rgb_to_hsv
 
 from PIL import Image
 
 """some (mostly numpy-based) utilities for wrangling images"""
+
+
+
+def collect_image_data(original_image_dir=None,
+                      hsv_image_dir=None,
+                      original_image_file=None,
+                      target_background_h=None,
+                      target_background_s=None,
+                      target_background_v=None,
+                      target_background_tolerance=None,
+                      new_background_hsv=None,
+                      num_colors=None,
+                      show_histo=True                      
+                      ):
+    """This routine gathers 'color swatches' from an image.  For every color found in > 1%
+       of the pixels in a reduced form of the image, it returns the %pixels, and the color as
+       RGB, HSV, and html.  The reduced form is a mapping to a color palatte consisting of 
+       num_colors colors (provided by setup.py)"""
+    
+    #replaces noisy background, reduces image to num_colors palatte
+    im=reduce_image(original_image_dir=original_image_dir,
+                          hsv_image_dir=hsv_image_dir,
+                          original_image_file=original_image_file,
+                          target_background_h=target_background_h,
+                          target_background_s=target_background_s,
+                          target_background_v=target_background_v,
+                          target_background_tolerance=target_background_tolerance,
+                          new_background_hsv=new_background_hsv,
+                          num_colors=num_colors
+                          ) 
+    
+    #this is the new, uniform background color (as RGB)
+    background_rgb=hsv_to_rgb(np.array((new_background_hsv)))*255
+    back_r, back_g, back_b = background_rgb 
+    
+    #returns a list of the colors (RGB) and % of each
+    color_list=get_color_list(im=im, 
+                                target_background_tolerance=target_background_tolerance,
+                                back_r=back_r, 
+                                back_g=back_g, 
+                                back_b=back_b
+                                )
+    for count, rgb in color_list:
+        #separates tuple of values [0,255]
+        r, g, b= rgb
+        #calculate HSV [0,1] (these raw HSV values could be fed to hsv_to_rgb to reverse the op)
+        h_raw, s_raw, v_raw=rgb_to_hsv([ r/255, g/255, b/255])
+        #calculate hsv values in natural units
+        h = h_raw*360  #h is in terms of degrees
+        s = s_raw*100  #s is in terms of percent
+        v = v_raw*100  #v is in terms of percent
+
+        html=RGBToHTMLColor(rgb)
+        return{'r':r, 'g':g, 'b':b, 
+               'h':h, 's':s,'v':v,
+               'html':html,
+               'image': im}
+        
 
 def reduce_image(original_image_dir=None,
                       hsv_image_dir=None,
@@ -41,6 +100,32 @@ def reduce_image(original_image_dir=None,
     im=im.convert('P', palette=Image.ADAPTIVE, colors=num_colors)
     im=im.convert("RGBA")
     return im
+
+def make_png_thumb(img=None, background=None, hsv=True):
+    "creates a transparent-background thumbnail for web page display"
+    
+    data=np.array(img)
+    r, g, b, a = data.T    
+    
+    #if background is hsv, convert it to rgb
+    if hsv:
+        background = hsv_to_rgb(np.array((background)))
+        back_red, back_blue, back_green = background
+        back_red=back_red*255
+        back_blue=back_blue*255
+        back_green=back_green*255
+    else:
+        back_red, back_blue, back_green = background
+    #this sets the masking condition and replaces the background color 
+    replace = (r == back_red) & (b == back_blue) & (g == back_green)
+     
+    data[replace.T] = (0,0,0,0)
+    
+    #create a thumbnail (note - need to do masking ops first because thumbnail
+    #routine does some color averaging).
+    new_image=Image.fromarray(data, 'RGBA')
+    new_image.thumbnail((100,100))
+    return new_image
 
 def filter_background(original_image_dir=None,
                       hsv_image_dir=None,
@@ -79,7 +164,7 @@ def filter_background(original_image_dir=None,
             target_background_v=0
             target_background_tolerance=0
         im=im.convert("RGB")
-        im.show()
+        #im.show()
         #convert the image to a numpy array and transform to HSV
         #  thinking here that this will be better correct for uneven (dirty) background
         
@@ -101,7 +186,7 @@ def filter_background(original_image_dir=None,
         data_rgb_255=(data_rgb* 255).astype(np.int8)
         
         im2 = Image.fromarray(data_rgb_255, "RGB")
-        im2.show()
+        #im2.show()
         if not return_rgb:
             return data_hsv
         else:
@@ -142,7 +227,7 @@ def get_color_list(im=None,
 
     for count, color in draft_color_list:
         pct = int(100* count/total_pixels)
-        print(count, total_pixels, pct)
+        #print(count, total_pixels, pct)
         if pct >=1:
             color_list.append((pct, color))
     return color_list
@@ -186,6 +271,7 @@ def create_histogram(original_image_dir=None,
                                 back_b=back_b
                                 )
 
+        
     
     #to visulize, we'll create a new np array.  We'll load each row
     # with color values - one column per percentage in image.  This results
@@ -228,10 +314,18 @@ def create_histogram(original_image_dir=None,
 
 def mask(c1, c1_target, c2, c2_target, c3, c3_target, slop=0):
     "given three channels return a mask for nearly-matching values"
+    #
     mask= ((c1 >= c1_target - slop) & (c1 <= c1_target + slop)) &\
           ((c2 >= c2_target - slop) & (c2 <= c2_target + slop)) &\
           ((c3 >= c3_target - slop) & (c3 <= c3_target + slop)) 
     return mask
+
+def RGBToHTMLColor(rgb_tuple):
+    """ convert an (R, G, B) tuple to #RRGGBB """
+    #http://code.activestate.com/recipes/266466-html-colors-tofrom-rgb-tuples/
+    hexcolor = '#%02x%02x%02x' % rgb_tuple
+    # that's it! '%02x' means zero-padded, 2-digit hex values
+    return hexcolor
 
 def stg2tup(stg):
     "convert a sting like '123,456,789' to a tuple like (123, 456, 789)"
@@ -241,161 +335,6 @@ def tup2stg(tup):
     "convert a tuple like (123, 456, 789) to a string like '123, 456, 789'"
     return  ', '.join([str(i) for i in tup])
 
-
-
-def rgb_to_hsv(arr):
-    """
-    from matplotlib.colors
-    
-    convert float rgb values (in the range [0, 1]), in a numpy array to hsv
-    values.
-
-    Parameters
-    ----------
-    arr : (..., 3) array-like
-       All values must be in the range [0, 1]
-
-    Returns
-    -------
-    hsv : (..., 3) ndarray
-       Colors converted to hsv values in range [0, 1]
-    """
-    # make sure it is an ndarray
-    arr = np.asarray(arr)
-
-    # check length of the last dimension, should be _some_ sort of rgb
-    if arr.shape[-1] != 3:
-        raise ValueError("Last dimension of input array must be 3; "
-                         "shape {shp} was found.".format(shp=arr.shape))
-
-    in_ndim = arr.ndim
-    if arr.ndim == 1:
-        arr = np.array(arr, ndmin=2)
-
-    # make sure we don't have an int image
-    if arr.dtype.kind in ('iu'):
-        arr = arr.astype(np.float32)
-
-    out = np.zeros_like(arr)
-    arr_max = arr.max(-1)
-    ipos = arr_max > 0
-    delta = arr.ptp(-1)
-    s = np.zeros_like(delta)
-    s[ipos] = delta[ipos] / arr_max[ipos]
-    ipos = delta > 0
-    # red is max
-    idx = (arr[..., 0] == arr_max) & ipos
-    out[idx, 0] = (arr[idx, 1] - arr[idx, 2]) / delta[idx]
-    # green is max
-    idx = (arr[..., 1] == arr_max) & ipos
-    out[idx, 0] = 2. + (arr[idx, 2] - arr[idx, 0]) / delta[idx]
-    # blue is max
-    idx = (arr[..., 2] == arr_max) & ipos
-    out[idx, 0] = 4. + (arr[idx, 0] - arr[idx, 1]) / delta[idx]
-
-    out[..., 0] = (out[..., 0] / 6.0) % 1.0
-    out[..., 1] = s
-    out[..., 2] = arr_max
-
-    if in_ndim == 1:
-        out.shape = (3,)
-
-    return out
-
-
-def hsv_to_rgb(hsv):
-    """
-    
-    from matplotlib.colors
-    
-    convert hsv values in a numpy array to rgb values
-    all values assumed to be in range [0, 1]
-
-    Parameters
-    ----------
-    hsv : (..., 3) array-like
-       All values assumed to be in range [0, 1]
-
-    Returns
-    -------
-    rgb : (..., 3) ndarray
-       Colors converted to RGB values in range [0, 1]
-    """
-    hsv = np.asarray(hsv)
-
-    # check length of the last dimension, should be _some_ sort of rgb
-    if hsv.shape[-1] != 3:
-        raise ValueError("Last dimension of input array must be 3; "
-                         "shape {shp} was found.".format(shp=hsv.shape))
-
-    # if we got pased a 1D array, try to treat as
-    # a single color and reshape as needed
-    in_ndim = hsv.ndim
-    if in_ndim == 1:
-        hsv = np.array(hsv, ndmin=2)
-
-    # make sure we don't have an int image
-    if hsv.dtype.kind in ('iu'):
-        hsv = hsv.astype(np.float32)
-
-    h = hsv[..., 0]
-    s = hsv[..., 1]
-    v = hsv[..., 2]
-
-    r = np.empty_like(h)
-    g = np.empty_like(h)
-    b = np.empty_like(h)
-
-    i = (h * 6.0).astype(np.int)
-    f = (h * 6.0) - i
-    p = v * (1.0 - s)
-    q = v * (1.0 - s * f)
-    t = v * (1.0 - s * (1.0 - f))
-
-    idx = i % 6 == 0
-    r[idx] = v[idx]
-    g[idx] = t[idx]
-    b[idx] = p[idx]
-
-    idx = i == 1
-    r[idx] = q[idx]
-    g[idx] = v[idx]
-    b[idx] = p[idx]
-
-    idx = i == 2
-    r[idx] = p[idx]
-    g[idx] = v[idx]
-    b[idx] = t[idx]
-
-    idx = i == 3
-    r[idx] = p[idx]
-    g[idx] = q[idx]
-    b[idx] = v[idx]
-
-    idx = i == 4
-    r[idx] = t[idx]
-    g[idx] = p[idx]
-    b[idx] = v[idx]
-
-    idx = i == 5
-    r[idx] = v[idx]
-    g[idx] = p[idx]
-    b[idx] = q[idx]
-
-    idx = s == 0
-    r[idx] = v[idx]
-    g[idx] = v[idx]
-    b[idx] = v[idx]
-
-    rgb = np.empty_like(hsv)
-    rgb[..., 0] = r
-    rgb[..., 1] = g
-    rgb[..., 2] = b
-
-    if in_ndim == 1:
-        rgb.shape = (3, )
-
-    return rgb
 
 
 
