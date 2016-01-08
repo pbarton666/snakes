@@ -14,25 +14,31 @@ from settings import *  #background colors, etc.
 from database_routines import get_connector, make_tables
 import dominant_to_alpha
 
+##TODO: use the hsv_image_dir to point to the html img reference.
+##Save appropriate full-scale version there
 
-
- 
-
-if __name__=='__main__':
-    original_image_dir="/home/pat/workspace/snakes"
-    hsv_image_dir="/home/pat/workspace/snakes"
-    #original_image_file="test_image_red.png"  
-    original_image_file="test_image.png" 
-    
-    conn=get_connector(db='snakes')
-    curs = conn.cursor() 
-    
-    need_new_tables=False
-    table='snake_id'
-    if need_new_tables:
-        make_tables()
-    
-    img_dict=collect_image_data(original_image_dir=original_image_dir,
+def add_image_to_database(original_image_dir=None,
+                          hsv_image_dir=None,
+                          original_image_file=None,
+                          target_background_h=None,
+                          target_background_s=None,
+                          target_background_v=None,
+                          target_background_tolerance=None,
+                          new_background_hsv=None,
+                          num_colors=None,
+                          db=None, 
+                          source='dummy_source',
+                          species='monty_python',
+                          identifying_authority='None',
+                          ):
+        
+        
+        conn=get_connector(db=db)
+        curs = conn.cursor()         
+        
+        #get RGB, HSV, and html colors from a reduced-color form of 
+        #  the image (background, number of colors, etc come from settings.py)
+        img_dict=collect_image_data(original_image_dir=original_image_dir,
                           hsv_image_dir=hsv_image_dir,
                           original_image_file=original_image_file,
                           target_background_h=target_background_h,
@@ -43,34 +49,71 @@ if __name__=='__main__':
                           num_colors=num_colors
                           )  
     
-    #convert Image object to thumbnail
-    img=make_png_thumb(img_dict['image'], new_background_hsv)
-    thumb='test_thumb.png'
-    img.save('test_thumb.png')
-    source='test_source'
+        #convert Image object to thumbnail
+        img=make_png_thumb(img_dict['image'], new_background_hsv)
+        if not os.path.exists(hsv_image_dir):
+                os.path.create(hsv_image_dir)
+        
+        thumb_filename=os.path.join(hsv_image_dir, 
+                                  os.path.split(original_image_file)[0] +
+                                     "_thumb.png"
+                                     )
+        img.save(thumb_filename)
     
-    species='ball_python'
-    img_file=os.path.join(original_image_dir, original_image_file)
-    sql="""INSERT INTO {}  (thumb, species, img_file, r, g, b, h, s, v, html, source)
-                VALUES('{}','{}','{}',{},{},{},{},{},{}, '{}','{}')""".format(
-                table,
-                thumb,
-                species,
-                img_file,
-                img_dict['r'],
-                img_dict['g'],
-                img_dict['b'],
-                img_dict['h'],
-                img_dict['s'],
-                img_dict['v'],
-                img_dict['html'],
-                source)
+        
+        sql="""INSERT INTO snake_info  (thumb_file, species, img_file, identifying_authority, source)
+                    VALUES('{}','{}','{}','{}','{}')
+                    RETURNING id"""\
+                .format(thumb_filename, 
+                        species,
+                        os.path.join(original_image_dir, original_image_file),
+                        identifying_authority,
+                        source)
+                                                               
+        curs.execute(sql)
+        snake_id = curs.fetchone()[0]
+        
+        ##TODO: local file name; make relative for web app
+        for color in img_dict['pik_data']:
+                sql="""INSERT INTO snake_colors  (pct, r, g, b, h, s, v, html, snake_id)
+                            VALUES({}, {}, {},{},{},{},{}, '{}', {})""".format(
+                            color['pct'],
+                            color['r'],
+                            color['g'],
+                            color['b'],
+                            color['h'],
+                            color['s'],
+                            color['v'],
+                            color['html'],
+                            snake_id)
+        
+                curs.execute(sql)
+        conn.commit()
 
-    curs.execute(sql)
-    conn.commit()
-    #note this transforms image to thumbnailt['image'].thumbnail((50,50))
-    print(fb)
-    a=1
+ 
+
+if __name__=='__main__':
+        original_image_dir="/home/pat/workspace/snakes"
+        hsv_image_dir="/home/pat/workspace/snakes"
+        #original_image_file="test_image_red.png"  
+        original_image_file="test_image.png" 
+        
+        add_image_to_database(original_image_dir=original_image_dir,
+                                  hsv_image_dir=hsv_image_dir,
+                                  original_image_file=original_image_file,
+                                  target_background_h=target_background_h,
+                                  target_background_s=target_background_s,
+                                  target_background_v=target_background_v,
+                                  target_background_tolerance=target_background_tolerance,
+                                  new_background_hsv=new_background_hsv,
+                                  num_colors=num_colors,
+                                  db='snakes', 
+                                  source='dummy_source',
+                                  species='monty_python',
+                                  identifying_authority='None',
+                              )    
+    
+    
     
     
     #number of colors preserved in palette reduction
@@ -88,7 +131,5 @@ if __name__=='__main__':
     
     #fb.show()
     
-  
 
-    ###Next step:  create 'flat' image of only the non-background pixels
     

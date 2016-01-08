@@ -1,0 +1,63 @@
+
+<html>
+<body>
+<table> 
+    <tr>
+        <td style='width:280;height:30'> </td>
+        <td style='height:30;font-size:14pt'>Snake Palatte (top nine colors)</td></tr>
+    <tr><td style='height:10'></td></tr>
+</table>
+    {% if snakes %}
+    <table>
+
+        {%for snake, id in snakes %}
+                <tr>
+                    <td style='font-size:12'>Snake &nbsp{{id}}&nbsp</td>
+                    {% for color in snake %}
+                        <td style='background: {{color.html}};width:70;height:50'></td>
+                    {% endfor %}  
+                    <td>&nbsp &nbsp &nbsp  &nbsp &nbsp</td>
+                    {% for color in snake %}
+                        <td style='background: {{color.html}};width:{{color.pct}};height:50'></td>
+                    {% endfor %}
+                </tr>
+                
+                <tr>    
+                    <td style='font-size: 8pt'> rgb </td>  
+                    {% for color in snake %}
+                        <td style='font-size: 8pt'>{{color.r}},{{color.g}},{{color.b}}</td>
+                    {% endfor %}  
+                </tr>                
+                <tr>      
+                    <td style='font-size: 8pt'> hsv </td>
+                    {% for color in snake %}
+                        <td style='font-size: 8pt'>{{color.h|floatformat:0}},{{color.s|floatformat:0}},{{color.v|floatformat:0}}</td>
+                    {% endfor %}  
+                </tr>                
+                
+                
+                
+                
+                
+                <tr><td style='height:50'</tr>
+        {%endfor%}
+    </table>
+
+          
+    {%else%}
+        Sorry, no snakes
+    {% endif %}
+</body>
+
+
+</html>
+
+<!--{% if latest_question_list %}-->
+    <!--<ul>-->
+    <!--{% for question in latest_question_list %}-->
+        <!--<li><a href="/polls/{{ question.id }}/">{{ question.question_text }}</a></li>-->
+    <!--{% endfor %}-->
+    <!--</ul>-->
+<!--{% else %}-->
+    <!--<p>No polls are available.</p>-->
+<!--{% endif %}-->

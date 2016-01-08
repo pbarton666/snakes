@@ -48,7 +48,16 @@ def collect_image_data(original_image_dir=None,
                                 back_g=back_g, 
                                 back_b=back_b
                                 )
-    for count, rgb in color_list:
+    
+    #The color list is a list of tuples.  Each tuple contains:
+    # (%pixels represented, (r, g, b))
+    #
+    #We'll reconstruct this to be a list of dicts with these keys:
+    # pct, r, g, b, h, s, v, html
+    
+    pik_data=[]
+    
+    for pct, rgb in color_list:
         #separates tuple of values [0,255]
         r, g, b= rgb
         #calculate HSV [0,1] (these raw HSV values could be fed to hsv_to_rgb to reverse the op)
@@ -59,10 +68,16 @@ def collect_image_data(original_image_dir=None,
         v = v_raw*100  #v is in terms of percent
 
         html=RGBToHTMLColor(rgb)
-        return{'r':r, 'g':g, 'b':b, 
-               'h':h, 's':s,'v':v,
-               'html':html,
-               'image': im}
+        
+        pik_data.append({'pct':pct,
+                         'r':r, 'g':g, 'b':b, 
+                         'h':h, 's':s,'v':v,
+                         'html':html})
+        
+
+    #return the color analysis and the image used
+    return {'pik_data':pik_data, 'image': im}
+
         
 
 def reduce_image(original_image_dir=None,
