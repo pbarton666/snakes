@@ -1,7 +1,7 @@
 #Number of colors into which we'll reduce the images as an initial processing step
 #   This makes a more manageable palatte at the expense of some small details not important
 #   to the purpose of this task
-num_colors=10
+num_colors=9
 
 #These parameters describe the "ideal" background in terms of the HSV model.  
 target_background_h=0
@@ -12,7 +12,7 @@ target_background_v=.93
 #  so here, we provide a tolerance factor.  Any image that matches the ideal
 #  color +/- the tolerance in each of the color model dimensions will be deemed
 #  background and will be redacted
-target_background_tolerance=.01
+target_background_tolerance=2
 
 #The image background will be replaced with this value before it's stored.  The replacement
 #  happens whether the image has an alpha channel or not.

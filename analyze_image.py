@@ -17,6 +17,12 @@ import dominant_to_alpha
 ##TODO: use the hsv_image_dir to point to the html img reference.
 ##Save appropriate full-scale version there
 
+'''next steps:
+      - store thumbnails and full images in web-accessible location
+      - get additional images on Dropbox
+      - add content to contextualize
+      - add thumbs and links to background info'''
+
 def add_image_to_database(original_image_dir=None,
                           hsv_image_dir=None,
                           original_image_file=None,
@@ -32,7 +38,8 @@ def add_image_to_database(original_image_dir=None,
                           identifying_authority='None',
                           ):
         
-        
+        '''Adds an image to the database, after first having removed the background
+              color'''
         conn=get_connector(db=db)
         curs = conn.cursor()         
         
@@ -55,7 +62,7 @@ def add_image_to_database(original_image_dir=None,
                 os.path.create(hsv_image_dir)
         
         thumb_filename=os.path.join(hsv_image_dir, 
-                                  os.path.split(original_image_file)[0] +
+                                  os.path.splitext(original_image_file)[0] +
                                      "_thumb.png"
                                      )
         img.save(thumb_filename)
@@ -93,25 +100,31 @@ def add_image_to_database(original_image_dir=None,
  
 
 if __name__=='__main__':
-        original_image_dir="/home/pat/workspace/snakes"
-        hsv_image_dir="/home/pat/workspace/snakes"
-        #original_image_file="test_image_red.png"  
-        original_image_file="test_image.png" 
-        
-        add_image_to_database(original_image_dir=original_image_dir,
-                                  hsv_image_dir=hsv_image_dir,
-                                  original_image_file=original_image_file,
-                                  target_background_h=target_background_h,
-                                  target_background_s=target_background_s,
-                                  target_background_v=target_background_v,
-                                  target_background_tolerance=target_background_tolerance,
-                                  new_background_hsv=new_background_hsv,
-                                  num_colors=num_colors,
-                                  db='snakes', 
-                                  source='dummy_source',
-                                  species='monty_python',
-                                  identifying_authority='None',
-                              )    
+        #add all the images in a directory in the form:
+        #  ball_python_1.png
+        #to the database, using file name as species
+        original_image_dir="/home/pat/workspace/snakes/images"
+        hsv_image_dir="/home/pat/workspace/snakes/images/thumbs"
+        for f in os.listdir(original_image_dir):
+                #f='indigo_1.png'
+                if os.path.isfile(os.path.join(original_image_dir, f)):
+                        #species is the filename less the trailing '_##.png' bit
+                        species=' '.join(os.path.splitext(f)[0].split('_')[:-1])
+                        original_image_file=f
+                        add_image_to_database(original_image_dir=original_image_dir,
+                                                  hsv_image_dir=hsv_image_dir,
+                                                  original_image_file=original_image_file,
+                                                  target_background_h=target_background_h,
+                                                  target_background_s=target_background_s,
+                                                  target_background_v=target_background_v,
+                                                  target_background_tolerance=target_background_tolerance,
+                                                  new_background_hsv=new_background_hsv,
+                                                  num_colors=num_colors,
+                                                  db='snakes', 
+                                                  source='dummy_source',
+                                                  species=species,
+                                                  identifying_authority='None',
+                                              )    
     
     
     

@@ -215,7 +215,10 @@ def get_color_list(im=None,
                    back_b=None):
     
     """Ransacks an image and returns a list containing the palatte elements and what 
-         pecent of the image contains each color.  Hard-coded logic screens out any
+         pecent of the image contains each color.  
+         
+         
+         ##No more:  Hard-coded logic screens out any
          color that's less than 1% of the total image"""
         
     #a sorted list of the most popular colors and the number of pixels of each
@@ -229,6 +232,9 @@ def get_color_list(im=None,
     for count, color in colors:
         #this checks whether this color is close to the background
         r, g, b, a = color
+        if r >253:
+            x=1
+        
         is_back = mask(r, back_r, g, back_g, b, back_b, slop = target_background_tolerance)
         
         #if it's a "real" color, catelogue # of pixels and the RGB value
@@ -243,7 +249,7 @@ def get_color_list(im=None,
     for count, color in draft_color_list:
         pct = int(100* count/total_pixels)
         #print(count, total_pixels, pct)
-        if pct >=1:
+        if pct >=0:
             color_list.append((pct, color))
     return color_list
 

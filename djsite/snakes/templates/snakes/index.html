@@ -5,12 +5,13 @@
     <tr>
         <td style='width:280;height:30'> </td>
         <td style='height:30;font-size:14pt'>Snake Palatte (top nine colors)</td></tr>
+        
     <tr><td style='height:10'></td></tr>
 </table>
     {% if snakes %}
     <table>
 
-        {%for snake, id in snakes %}
+        {%for snake, id, species, filename in snakes %}
                 <tr>
                     <td style='font-size:12'>Snake &nbsp{{id}}&nbsp</td>
                     {% for color in snake %}
@@ -33,7 +34,11 @@
                     {% for color in snake %}
                         <td style='font-size: 8pt'>{{color.h|floatformat:0}},{{color.s|floatformat:0}},{{color.v|floatformat:0}}</td>
                     {% endfor %}  
-                </tr>                
+                </tr>    
+                <tr>
+                    <td></td>
+                    <td colspan='2' style='font-size: 8pt'> {{species}} </td>
+                    <td colspan='6' style='font-size: 8pt'> {{filename}} </td>
                 
                 
                 
