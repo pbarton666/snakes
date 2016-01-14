@@ -2,6 +2,10 @@ import numpy as np
 import math
 import os
 from matplotlib.colors import hsv_to_rgb, rgb_to_hsv
+from snake_settings import *  #background colors, etc.
+from database_routines import get_connector, make_tables
+
+
 
 from PIL import Image
 
@@ -358,6 +362,106 @@ def tup2stg(tup):
 
 
 
+def add_image_to_database(original_image_dir=None,
+                          hsv_image_dir=None,
+                          original_image_file=None,
+                          target_background_h=None,
+                          target_background_s=None,
+                          target_background_v=None,
+                          target_background_tolerance=None,
+                          new_background_hsv=None,
+                          num_colors=None,
+                          db=None, 
+                          source='dummy_source',
+                          species='monty_python',
+                          identifying_authority='None',
+                          ):
+        
+        '''Adds an image to the database, after first having removed the background
+              color'''
+        conn=get_connector(db=db)
+        curs = conn.cursor()         
+        
+        #get RGB, HSV, and html colors from a reduced-color form of 
+        #  the image (background, number of colors, etc come from snake_settings.py)
+        img_dict=collect_image_data(original_image_dir=original_image_dir,
+                          hsv_image_dir=hsv_image_dir,
+                          original_image_file=original_image_file,
+                          target_background_h=target_background_h,
+                          target_background_s=target_background_s,
+                          target_background_v=target_background_v,
+                          target_background_tolerance=target_background_tolerance,
+                          new_background_hsv=new_background_hsv,
+                          num_colors=num_colors
+                          )  
+    
+        #convert Image object to thumbnail
+        img=make_png_thumb(img_dict['image'], new_background_hsv)
+        if not os.path.exists(hsv_image_dir):
+                os.path.create(hsv_image_dir)
+        
+        thumb_filename=os.path.join(hsv_image_dir, 
+                                  os.path.splitext(original_image_file)[0] +
+                                     "_thumb.png"
+                                     )
+        img.save(thumb_filename)
+    
+        
+        sql="""INSERT INTO snake_info  (thumb_file, species, img_file, identifying_authority, source)
+                    VALUES('{}','{}','{}','{}','{}')
+                    RETURNING id"""\
+                .format(thumb_filename, 
+                        species,
+                        os.path.join(original_image_dir, original_image_file),
+                        identifying_authority,
+                        source)
+                                                               
+        curs.execute(sql)
+        snake_id = curs.fetchone()[0]
+        
+        ##TODO: local file name; make relative for web app
+        for color in img_dict['pik_data']:
+                sql="""INSERT INTO snake_colors  (pct, r, g, b, h, s, v, html, snake_id)
+                            VALUES({}, {}, {},{},{},{},{}, '{}', {})""".format(
+                            color['pct'],
+                            color['r'],
+                            color['g'],
+                            color['b'],
+                            color['h'],
+                            color['s'],
+                            color['v'],
+                            color['html'],
+                            snake_id)
+        
+                curs.execute(sql)
+        conn.commit()
+
+def add_directory_to_database(original_image_dir=None, hsv_image_dir=None, db='snakes') :
+        """Adds all the images in a directory to the database (removing background, etc.)
+           This includes removing the background, etc.  If employs specific file-naming
+           conventions to parse the species out of a filename like:
+           burmese_01.png"""
+        for f in os.listdir(original_image_dir):
+                #f='indigo_1.png'
+                if os.path.isfile(os.path.join(original_image_dir, f)):
+                        #species is the filename less the trailing '_##.png' bit
+                        species=' '.join(os.path.splitext(f)[0].split('_')[:-1])
+                        original_image_file=f
+                        add_image_to_database(original_image_dir=original_image_dir,
+                                                  hsv_image_dir=hsv_image_dir,
+                                                  original_image_file=original_image_file,
+                                                  target_background_h=target_background_h,
+                                                  target_background_s=target_background_s,
+                                                  target_background_v=target_background_v,
+                                                  target_background_tolerance=target_background_tolerance,
+                                                  new_background_hsv=new_background_hsv,
+                                                  num_colors=num_colors,
+                                                  db='snakes', 
+                                                  source='dummy_source',
+                                                  species=species,
+                                                  identifying_authority='None',
+                                              )                                                   
+        
 
 if __name__=='__main__':
     assert stg2tup('123, 456, 789')==(123, 456, 789)
