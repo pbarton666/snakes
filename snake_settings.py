@@ -1,7 +1,7 @@
 #Number of colors into which we'll reduce the images as an initial processing step
 #   This makes a more manageable palatte at the expense of some small details not important
 #   to the purpose of this task
-num_colors=9
+num_colors=10
 
 #These parameters describe the "ideal" background in terms of the HSV model.  
 target_background_h=0

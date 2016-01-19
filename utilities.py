@@ -398,7 +398,7 @@ def add_image_to_database(original_image_dir=None,
         #convert Image object to thumbnail
         img=make_png_thumb(img_dict['image'], new_background_hsv)
         if not os.path.exists(hsv_image_dir):
-                os.path.create(hsv_image_dir)
+                os.mkdir(hsv_image_dir)
         
         thumb_filename=os.path.join(hsv_image_dir, 
                                   os.path.splitext(original_image_file)[0] +
@@ -407,14 +407,15 @@ def add_image_to_database(original_image_dir=None,
         img.save(thumb_filename)
     
         
-        sql="""INSERT INTO snake_info  (thumb_file, species, img_file, identifying_authority, source)
-                    VALUES('{}','{}','{}','{}','{}')
+        sql="""INSERT INTO snake_info  (thumb_file, species, img_file, identifying_authority, source, web_image_file)
+                    VALUES('{}','{}','{}','{}','{}', '{}')
                     RETURNING id"""\
                 .format(thumb_filename, 
                         species,
                         os.path.join(original_image_dir, original_image_file),
                         identifying_authority,
-                        source)
+                        source,
+                        original_image_file)
                                                                
         curs.execute(sql)
         snake_id = curs.fetchone()[0]
