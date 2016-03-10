@@ -135,6 +135,7 @@ if __name__=='__main__':
                                                                 rix+=1
                                         
                                         slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+                                        
                                         r2=r_value**2
                                         print("{} beta = {}  R2 = {} std err = {}".format(label, round(slope,2), round(r2, 2), round(std_err, 2)))
                                         

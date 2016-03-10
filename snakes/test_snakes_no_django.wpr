@@ -48,6 +48,12 @@ proj.directory-list = [{'dirloc': loc('.'),
                         'filter': u'*',
                         'include_hidden': False,
                         'recursive': True,
+                        'watch_for_changes': True},
+                       {'dirloc': loc('scripts'),
+                        'excludes': (),
+                        'filter': u'*',
+                        'include_hidden': False,
+                        'recursive': True,
                         'watch_for_changes': True}]
 proj.file-type = 'shared'
 proj.launch-config = {loc('djsite/djsite/settings.py'): ('project',
@@ -55,6 +61,11 @@ proj.launch-config = {loc('djsite/djsite/settings.py'): ('project',
          'launch-UAbglnJMUu9O3N8v')),
                       loc('djsite/manage.py'): ('custom',
         ('',
-         'launch-2GL3gX3taKs7oK4o'))}
-proj.main-file = loc('djsite/manage.py')
+         'launch-2GL3gX3taKs7oK4o')),
+                      loc('scripts/python_geometry.py'): ('project',
+        (u'',
+         'launch-2GL3gX3taKs7oK4o')),
+                      loc('trig.py'): ('project',
+                                       (u'',
+        'launch-2GL3gX3taKs7oK4o'))}
 testing.test-framework = {loc('djsite/manage.py'): ':internal djangotest'}

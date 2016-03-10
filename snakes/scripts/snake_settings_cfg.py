@@ -1,3 +1,10 @@
+[directories]
+test_image_dir = '/home/pat/workspace/snakes/images/'
+db_image_dir   = 'home/pat/workspace/snakes/static/'
+
+
+[image]   #settings for capturing and processing colors
+
 #Number of colors into which we'll reduce the images as an initial processing step
 #   This makes a more manageable palatte at the expense of some small details not important
 #   to the purpose of this task
@@ -18,4 +25,6 @@ target_background_tolerance=2
 #  happens whether the image has an alpha channel or not.
 new_background_hsv=(0, 1, 1)
 
-need_new_tables=False #blows out existing tables and replaces with new.  Use w/ caution.
+[db_management]
+###Use w/ caution.  Blows out existing tables and replaces with new.
+need_new_tables=False   
