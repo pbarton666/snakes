@@ -252,7 +252,7 @@ def analyze_results(data_file=None, debug_print=False):
     
     dtype=[('left_r2', float), ('right_r2', float), ('avg_r2', float),
            ('left_angle',float), ('right_angle', float), ('sum_angle', float), 
-           ('dlta_angle', float)
+           ('dlta_angle', float), ('rotation', float), ('split', float)
            ]
     npa=np.ones((len(raw)/2), dtype=dtype)
     
@@ -286,9 +286,12 @@ def analyze_results(data_file=None, debug_print=False):
                 right_angle=raw[i][ANGLE_IX]
                 sum_angle=left_angle + right_angle
                 dlta_angle=abs(left_angle - right_angle)
+                rotation=raw[i][ROT_IX]
+                split=raw[i][SPLIT_IX]
                
                 npa[trow]=(left_r2, right_r2, avg_r2,
-                           left_angle, right_angle, sum_angle, dlta_angle)
+                           left_angle, right_angle, sum_angle, dlta_angle,
+                           rotation, split)
 
                 trow+=1
                 break
@@ -313,7 +316,10 @@ def analyze_results(data_file=None, debug_print=False):
     
     ##TODO: move these bits in atomic subroutines
     results=[]
-    results.append('starting with {} observations'.format(len(npa)))
+    results.append('Starting with {} observations\n'.format(len(npa)))
+    results.append('At each stage, we will sort by the criterion and keep')
+    results.append('  going through the list until we hit an out-of spec one.\n')
+    
 
     #cull out observations with too much difference between the halves
     metric='dlta_angle'
@@ -322,12 +328,14 @@ def analyze_results(data_file=None, debug_print=False):
 
     for obs in culled_npa:
         if obs[metric] > threhhold_max_angle_dlta:
+            stg='rotation {}, split {} failed: dlta_angle is {}'
+            results.append(stg.format(obs['rotation'], obs['split'], obs[metric]))
             break
         else:
             last_good+=1
     culled_npa=culled_npa[:last_good+1]
     results.append('{} remaining after symmetry check'.format(len(culled_npa)))
-    results.append('... max delta between left/right angles is {}'.format(threhhold_max_angle_dlta))
+    results.append('... max delta between left/right angles is {}\n'.format(threhhold_max_angle_dlta))
     
     #cull out observations with a lousy fit
     metric='avg_r2'
@@ -336,24 +344,28 @@ def analyze_results(data_file=None, debug_print=False):
     
     for obs in culled_npa:
         if obs[metric] < threhhold_min_avg_r2:
+            stg='rotation {}, split {} failed: R^2 is {}'
+            results.append(stg.format(obs['rotation'], obs['split'], obs[metric]))            
             break
         else:
             last_good+=1
     culled_npa=culled_npa[:last_good+1]  
     results.append('{} remaining after goodness-of-fit check'.format(len(culled_npa)))
-    results.append('... R^2 needs to be better than {}'.format(threhhold_min_avg_r2))
+    results.append('... R^2 needs to be better than {}\n'.format(threhhold_min_avg_r2))
     
     
     #check if the angles measured is stable (it should be)
-    metric='sum_angle'
-    coeff_of_variation=np.std(culled_npa['sum_angle'])/np.mean(culled_npa['sum_angle'])
-    results.append('coefficient of variation on angles is: {}'.format(coeff_of_variation))
-    results.append('...max is {}'.format(threhhold_max_coef_of_var))
-    if coeff_of_variation > threhhold_max_coef_of_var:
-        results.append('... not looking good.')
-        variability_OK=False
-    else:
-        variability_OK=True
+    if len(culled_npa)>1:
+        metric='sum_angle'
+        coeff_of_variation=np.std(culled_npa['sum_angle'])/np.mean(culled_npa['sum_angle'])
+        results.append('coefficient of variation on angles is: {}'.format(coeff_of_variation))
+        results.append('...max is {}'.format(threhhold_max_coef_of_var))
+        if coeff_of_variation > threhhold_max_coef_of_var:
+            results.append('... not looking good.\n')
+            variability_OK=False
+        else:
+            results.append('...looks good so far\n')
+            variability_OK=True
     
     
     #cull out those whose angles don't look like pythonic "V"s
@@ -364,6 +376,8 @@ def analyze_results(data_file=None, debug_print=False):
 
     for obs in culled_npa:
         if obs[metric] < threhhold_min_angle_sum:
+            stg='rotation {}, split {} failed: angle is {} (too small)'
+            results.append(stg.format(obs['rotation'], obs['split'], obs[metric]))            
             break
         else:
             last_good+=1
@@ -376,6 +390,8 @@ def analyze_results(data_file=None, debug_print=False):
 
     for obs in culled_npa:
         if obs[metric] >  threhhold_max_angle_sum:
+            stg='rotation {}, split {} failed: angle is {} (too big)'
+            results.append(stg.format(obs['rotation'], obs['split'], obs[metric]))             
             break
         else:
             last_good+=1
@@ -388,10 +404,15 @@ def analyze_results(data_file=None, debug_print=False):
     if len(culled_npa):
         if variability_OK:
             results.append("\n *** Looks like we've got a python! ***")
+            results.append('\nbest images data:')
+            results.append('left_r2  right_r2  avg_42  left_angle  right_angle  sum_angle dlta_angle') 
+            for n in culled_npa:
+                print(n['left_r2'], n['right_r2'],  n['avg_42'],
+                      n['left_angle'],  n['right_angle'],  n['sum_angle'], n['dlta_angle'])
         else:
-            results.append("Not so sure.  Everything matches except consistency.")
+            results.append("\nNot so sure.  Everything matches except consistency.")
     else:
-        results.append("No python here.")
+        results.append("\nNo python here.")
     
     debug_print=True    
     if debug_print:
@@ -403,9 +424,11 @@ def analyze_results(data_file=None, debug_print=False):
 
 
 if __name__=='__main__':
-    image_file='/home/pat/workspace/snakes/snakes/images/research_images/color_head.png'
-    image_file='/home/pat/workspace/snakes/snakes/images/research_images/corn.png'
-    image_file='/home/pat/workspace/snakes/snakes/images/research_images/king.png'
+    
+    image_file='/home/pat/workspace/snakes/snakes/images/research_images/corn_snake_clean_head.png'
+    #image_file='/home/pat/workspace/snakes/snakes/images/research_images/color_head.png'
+    #image_file='/home/pat/workspace/snakes/snakes/images/research_images/corn.png'
+    #image_file='/home/pat/workspace/snakes/snakes/images/research_images/king.png'
     #image_file= '/home/pat/workspace/snakes/snakes/images/test_pattern_images/test_45_degrees.PNG'
     #image_file= '/home/pat/workspace/snakes/snakes/images/test_pattern_images/test_55_degrees.PNG'
     #image_file= '/home/pat/vmshared/test_pattern_images/test_55_degrees.PNG'
@@ -418,10 +441,15 @@ if __name__=='__main__':
     results_file=config['locations']['debug_dir']+config['locations']['debug_file']
     
     if do_process_image:
+        #results=process_image(file_name=image_file, debug_print=False, 
+                              #debug_show_images=False, debug_plot=False,
+                              #rotation_range=20, split_range=10)
+                              ##rotation_range=0, split_range=0)
+                              
         results=process_image(file_name=image_file, debug_print=True, 
-                              debug_show_images=False, debug_plot=False,
-                              rotation_range=20, split_range=10)
-                              #rotation_range=0, split_range=0)
+                              debug_show_images=True, debug_plot=True,
+                              #rotation_range=20, split_range=10)
+                              rotation_range=0, split_range=0)                              
                             
         #bad images yield no results                      
         if results:       

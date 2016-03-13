@@ -31,8 +31,10 @@ if __name__=='__main__':
         #add all the images in a directory in the form:
         #  ball_python_1.png
         #to the database, using file name as species
-        original_image_dir="/home/pat/workspace/snakes/djsite/snakes/static"
-        hsv_image_dir="/home/pat/workspace/snakes/djsite/snakes/static/thumbs"
+        
+        original_image_dir="/home/pat/workspace/snakes/snakes/static"
+        
+        hsv_image_dir="/home/pat/workspace/snakes/snakes/static/thumbs"
         add_directory_to_database(original_image_dir=original_image_dir, 
                                   hsv_image_dir=hsv_image_dir, 
                                   db='snakes') 
